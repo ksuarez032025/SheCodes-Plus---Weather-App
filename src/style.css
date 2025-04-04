@@ -56,6 +56,12 @@ main {
   margin: 0;
 }
 
+.weather-app-country {
+  font-size: 18px;
+  margin: 8px 0 8px 0;
+  
+}
+
 .weather-app-details {
   color: rgba(39, 33, 66, 0.4);
   font-size: 16px;
