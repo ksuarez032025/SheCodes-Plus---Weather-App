@@ -5,6 +5,11 @@ body {
 
 a {
   color: #f3a65e;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 header {
@@ -57,9 +62,8 @@ main {
 }
 
 .weather-app-country {
-  font-size: 18px;
-  margin: 8px 0 8px 0;
-
+  font-size: 14px;
+  margin: 0 auto;
 }
 
 .weather-app-details {
