@@ -47,8 +47,6 @@ function refreshWeather(response) {
   windSpeedElement.innerHTML = `${response.data.wind.speed}mph`;
   temperatureElement.innerHTML = Math.round(temperature);
   iconElement.innerHTML = `<img src ="${response.data.condition.icon_url}"class="weather-app-icon"/>`;
-
-  getForecast(response.data.city);
 }
 
 function displayForecast(response) {
@@ -75,6 +73,14 @@ function displayForecast(response) {
   });
 
   forecastElement.innerHTML = forecastHtml;
+}
+
+function handleApiError(error) {
+  if (error.reponse && error.response.status === 429) {
+    alert("Too many requests. Please wait a few seconds and try again.");
+  } else {
+    console.error("API Error:", error);
+  }
 }
 
 function fetchWeatherData(city) {
