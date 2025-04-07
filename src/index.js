@@ -1,31 +1,10 @@
 let lastSearchedCity = "";
 let lastRequestTime = 0;
 const RATE_LIMIT_MS = 3000;
+const CACHE_TTL_MS = 5 * 60 * 1000;
 let debounceTimeout = null;
 
-function refreshWeather(response) {
-  let temperatureElement = document.querySelector("#temperature");
-  let temperature = response.data.temperature.current;
-  let cityElement = document.querySelector("#city");
-  let countryElement = document.querySelector("#country");
-  let descriptionElement = document.querySelector("#description");
-  let humidityElement = document.querySelector("#humidity");
-  let windSpeedElement = document.querySelector("#wind-speed");
-  let timeElement = document.querySelector("#time");
-  let date = new Date(response.data.time * 1000);
-  let iconElement = document.querySelector("#icon");
-
-  cityElement.innerHTML = response.data.city;
-  countryElement.innerHTML = response.data.country;
-  timeElement.innerHTML = formatDate(date);
-  descriptionElement.innerHTML = response.data.condition.description;
-  humidityElement.innerHTML = `${response.data.temperature.humidity}%`;
-  windSpeedElement.innerHTML = `${response.data.wind.speed}mph`;
-  temperatureElement.innerHTML = Math.round(temperature);
-  iconElement.innerHTML = `<img src ="${response.data.condition.icon_url}"class="weather-app-icon"/>`;
-
-  getForecast(response.data.city);
-}
+const weatherCache = new Map();
 
 function formatDate(date) {
   let minutes = date.getMinutes();
@@ -47,36 +26,99 @@ function formatDate(date) {
   return `${day} ${hours}:${minutes}`;
 }
 
-function searchCity(city) {
-  const now = Date.now();
+function refreshWeather(response) {
+  let temperatureElement = document.querySelector("#temperature");
+  let cityElement = document.querySelector("#city");
+  let countryElement = document.querySelector("#country");
+  let descriptionElement = document.querySelector("#description");
+  let humidityElement = document.querySelector("#humidity");
+  let windSpeedElement = document.querySelector("#wind-speed");
+  let timeElement = document.querySelector("#time");
+  let iconElement = document.querySelector("#icon");
 
-  if (city.toLowerCase() === lastSearchedCity.toLowerCase()) {
+  let temperature = response.data.temperature.current;
+  let date = new Date(response.data.time * 1000);
+
+  cityElement.innerHTML = response.data.city;
+  countryElement.innerHTML = response.data.country;
+  timeElement.innerHTML = formatDate(date);
+  descriptionElement.innerHTML = response.data.condition.description;
+  humidityElement.innerHTML = `${response.data.temperature.humidity}%`;
+  windSpeedElement.innerHTML = `${response.data.wind.speed}mph`;
+  temperatureElement.innerHTML = Math.round(temperature);
+  iconElement.innerHTML = `<img src ="${response.data.condition.icon_url}"class="weather-app-icon"/>`;
+
+  getForecast(response.data.city);
+}
+
+function displayForecast(response) {
+  const forecastElement = document.querySelector("#forecast");
+  let forecastHtml = "";
+
+  response.data.daily.forEach(function (day) {
+    forecastHtml =
+      forecastHtml +
+      `
+      <div class="weather-forecast-day">
+        <div class="weather-forecast-date">Tue</div>
+        <img src="${day.condition.icon_url}" class="weather-forecast-icon" />
+        <div class="weather-forecast-temperatures">
+          <div class="weather-forecast-temperature">
+            <strong>${Math.round(day.temperature.maximum)}°</strong>
+          </div>
+          <div class="weather-forecast-temperature">${Math.round(
+            day.temperature.minimum
+          )}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  forecastElement.innerHTML = forecastHtml;
+}
+
+function fetchWeatherData(city) {
+  const now = Date.now();
+  const cityKey = city.toLowerCase();
+
+  if (cityKey === lastSearchedCity) {
     console.log("Duplicate request avoided.");
     return;
   }
-
   if (now - lastRequestTime < RATE_LIMIT_MS) {
     console.log("Rate limit hit. Try again shortly.");
     return;
   }
 
-  lastSearchedCity = city;
+  lastRequestedCity = cityKey;
   lastRequestTime = now;
 
-  let apiKey = "c3650d7d0ad3c75tcafd67c27c4o8bd0";
-  let apiUrl = `https://api.shecodes.io/weather/v1/current?query=${city}&key=${apiKey}&units=imperial`;
-
-  axios.get(apiUrl).then(refreshWeather).catch(handleApiError);
-
-  console.log("API requested:", apiUrl);
-}
-
-function handleApiError(error) {
-  if (error.response && error.response.status === 429) {
-    alert("Too many requests. Please wait a few seconds and try again.");
-  } else {
-    console.error("API Error:", error);
+  if (weatherCache.has(cityKey)) {
+    const cachedData = weatherCache.get(cityKey);
+    if (now - cachedData.timestamp < CACHE_TTL_MS) {
+      console.log("Using cached data for", city);
+      refreshWeather(cachedData.current);
+      displayForecast(cachedData.forecast);
+      return;
+    }
   }
+
+  const apiKey = "c3650d7d0ad3c75tcafd67c27c4o8bd0";
+  const currentApiUrl = `https://api.shecodes.io/weather/v1/current?query=${city}&key=${apiKey}&units=imperial`;
+  const forecastApiUrl = `https://api.shecodes.io/weather/v1/forecast?query=${city}&key=${apiKey}&units=imperial`;
+
+  Promise.all([axios.get(currentApiUrl), axuis, get(forecastApiUrl)])
+    .then(([currentRes, forecastRes]) => {
+      refreshWeather(currentRes);
+      displayForecast(forecastRes);
+
+      weatherCache.set(cityKey, {
+        timestamp: now,
+        current: currentRes,
+        forecast: forecastRes,
+      });
+    })
+    .catch(handleApiError);
 }
 
 function handleSearch(event) {
@@ -88,46 +130,12 @@ function handleSearch(event) {
     let city = searchInput.value.trim();
 
     if (city) {
-      searchCity(city);
+      fetchWeatherData(city);
     }
   }, 500);
 }
 
-function getForecast(city) {
-  let apiKey = "c3650d7d0ad3c75tcafd67c27c4o8bd0";
-  let apiUrl = `https://api.shecodes.io/weather/v1/forecast?query=${city}&key=${apiKey}&units=imperial`;
-  axios(apiUrl).then(displayForecast);
-}
-
-function displayForecast(response) {
-  console.log(response.data);
-
-  let days = ["Tue", "Wed", "Thu", "Fri", "Sat"];
-  let forecastHtml = "";
-
-  days.forEach(function (day) {
-    forecastHtml =
-      forecastHtml +
-      `
-      <div class="weather-forecast-day">
-        <div class="weather-forecast-date">${day}</div>
-        <div class="weather-forecast-icon">⛅</div>
-        <div class="weather-forecast-temperatures">
-          <div class="weather-forecast-temperature">
-            <strong>15°</strong>
-          </div>
-          <div class="weather-forecast-temperature">9°</div>
-        </div>
-      </div>
-    `;
-  });
-
-  let forecastElement = document.querySelector("#forecast");
-  forecastElement.innerHTML = forecastHtml;
-}
-
-let searchFormElement = document.querySelector("#search-form");
+const searchFormElement = document.querySelector("#search-form");
 searchFormElement.addEventListener("submit", handleSearch);
 
-searchCity("Buffalo");
-getForecast("Buffalo");
+fetchWeatherData("Buffalo");
