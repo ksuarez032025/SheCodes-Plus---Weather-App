@@ -1,30 +1,7 @@
-let lastSearchedCity = "";
+let lastRequestedCity = "";
 let lastRequestTime = 0;
 const RATE_LIMIT_MS = 3000;
-const CACHE_TTL_MS = 5 * 60 * 1000;
 let debounceTimeout = null;
-
-const weatherCache = new Map();
-
-function formatDate(date) {
-  let minutes = date.getMinutes();
-  let hours = date.getHours();
-  let days = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  let day = days[date.getDay()];
-  if (minutes < 10) {
-    minutes = `0${minutes}`;
-  }
-
-  return `${day} ${hours}:${minutes}`;
-}
 
 function refreshWeather(response) {
   let temperatureElement = document.querySelector("#temperature");
@@ -64,15 +41,35 @@ function displayForecast(response) {
           <div class="weather-forecast-temperature">
             <strong>${Math.round(day.temperature.maximum)}°</strong>
           </div>
-          <div class="weather-forecast-temperature">${Math.round(
-            day.temperature.minimum
-          )}</div>
+          <div class="weather-forecast-temperature">
+          ${Math.round(day.temperature.minimum)}°
+          </div>
         </div>
       </div>
     `;
   });
 
   forecastElement.innerHTML = forecastHtml;
+}
+
+function formatDate(date) {
+  let minutes = date.getMinutes();
+  let hours = date.getHours();
+  let days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  let day = days[date.getDay()];
+  if (minutes < 10) {
+    minutes = `0${minutes}`;
+  }
+
+  return `${day} ${hours}:${minutes}`;
 }
 
 function handleApiError(error) {
@@ -85,44 +82,28 @@ function handleApiError(error) {
 
 function fetchWeatherData(city) {
   const now = Date.now();
-  const cityKey = city.toLowerCase();
 
-  if (cityKey === lastSearchedCity) {
+  if (city.toLowerCase() === lastRequestedCity.toLowerCase()) {
     console.log("Duplicate request avoided.");
     return;
   }
+
   if (now - lastRequestTime < RATE_LIMIT_MS) {
     console.log("Rate limit hit. Try again shortly.");
     return;
   }
 
-  lastRequestedCity = cityKey;
+  lastRequestedCity = city;
   lastRequestTime = now;
-
-  if (weatherCache.has(cityKey)) {
-    const cachedData = weatherCache.get(cityKey);
-    if (now - cachedData.timestamp < CACHE_TTL_MS) {
-      console.log("Using cached data for", city);
-      refreshWeather(cachedData.current);
-      displayForecast(cachedData.forecast);
-      return;
-    }
-  }
 
   const apiKey = "c3650d7d0ad3c75tcafd67c27c4o8bd0";
   const currentApiUrl = `https://api.shecodes.io/weather/v1/current?query=${city}&key=${apiKey}&units=imperial`;
   const forecastApiUrl = `https://api.shecodes.io/weather/v1/forecast?query=${city}&key=${apiKey}&units=imperial`;
 
-  Promise.all([axios.get(currentApiUrl), axuis, get(forecastApiUrl)])
+  Promise.all([axios.get(currentApiUrl), axios.get(forecastApiUrl)])
     .then(([currentRes, forecastRes]) => {
       refreshWeather(currentRes);
       displayForecast(forecastRes);
-
-      weatherCache.set(cityKey, {
-        timestamp: now,
-        current: currentRes,
-        forecast: forecastRes,
-      });
     })
     .catch(handleApiError);
 }
