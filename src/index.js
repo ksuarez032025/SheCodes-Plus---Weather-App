@@ -31,7 +31,7 @@ function displayForecast(response) {
   let forecastHtml = "";
 
   response.data.daily.forEach(function (day, index) {
-    if (index > 5) {
+    if (index < 5) {
       forecastHtml =
         forecastHtml +
         `
@@ -83,7 +83,7 @@ function formatDay(timestamp) {
 }
 
 function handleApiError(error) {
-  if (error.reponse && error.response.status === 429) {
+  if (error.response && error.response.status === 429) {
     alert("Too many requests. Please wait a few seconds and try again.");
   } else {
     console.error("API Error:", error);
