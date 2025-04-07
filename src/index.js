@@ -82,9 +82,25 @@ function formatDay(timestamp) {
   return days[date.getDay()];
 }
 
+function showCustomAlert(message) {
+  const alertBox = document.querySelector("#custom-alert");
+  const alertMessage = document.querySelector("#custom-alert-message");
+
+  alertMessage.textContent = message;
+  alertBox.classList.remove("hidden");
+  alertBox.classList.add("show");
+
+  setTimeout(() => {
+    alertBox.classList.remove("show");
+    alertBox.classList.add("hidden");
+  }, 3000);
+}
+
 function handleApiError(error) {
   if (error.response && error.response.status === 429) {
-    alert("Too many requests. Please wait a few seconds and try again.");
+    showCustomAlert(
+      "Too many requests. Please wait a few seconds and try again."
+    );
   } else {
     console.error("API Error:", error);
   }

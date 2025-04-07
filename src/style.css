@@ -139,3 +139,27 @@ footer {
   font-size: 15px;
   color: rgba(39, 33, 66, 0.4);
 }
+
+.custom-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #f65282;
+  color: white;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-family: "Roboto Flex", sans-serif;
+  font-size: 16px;
+  z-index: 9999;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.custom-alert.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.custom-alert.show {
+  opacity: 1;
+}
